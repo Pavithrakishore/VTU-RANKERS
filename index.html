@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RouteMaster Pro | Integrated System</title>
+    <title>RouteMaster Pro | Logistics Optimizer</title>
     <style>
         :root { 
             --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; 
@@ -19,17 +19,19 @@
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; transition: 0.3s; }
         .dashboard { display: flex; width: 100%; height: 100vh; }
         
-        .sidebar { width: 300px; background: var(--card); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border-right: 1px solid var(--shelf); box-sizing: border-box; }
-        label { font-size: 0.6rem; color: #888; font-weight: bold; text-transform: uppercase; }
+        .sidebar { width: 320px; background: var(--card); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border-right: 1px solid var(--shelf); box-sizing: border-box; }
+        .sidebar-header { font-size: 0.8rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+        
+        label { font-size: 0.6rem; color: #888; font-weight: bold; text-transform: uppercase; margin-top: 5px; }
         select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--shelf); color: var(--text); border-radius: 6px; padding: 10px; box-sizing: border-box; font-size: 0.8rem; }
-        textarea { height: 120px; font-family: 'Consolas', monospace; resize: none; }
+        textarea { height: 150px; font-family: 'Consolas', monospace; resize: none; border: 2px solid var(--accent); }
         
         .btn-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
         button { border: none; padding: 0.8rem; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; transition: 0.2s; }
         #initBtn { background: var(--accent); color: var(--bg); }
         #stepBtn { background: var(--shelf); color: var(--text); }
         #playBtn { background: #22c55e; color: #000; }
-        button:disabled { opacity: 0.2; }
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .viewport { flex: 1; padding: 2rem; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 20px; }
         
@@ -49,36 +51,43 @@
         .cell { 
             width: 46px; height: 46px; border: 2.5px solid var(--border-color); 
             display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+            background: rgba(255,255,255,0.02);
         }
 
         .obstacle { background: var(--shelf) !important; }
-        .target-cell { background: var(--target) !important; color: #000; font-weight: 900; }
-        .path-cell { background: var(--path-bg) !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); z-index: 5; }
+        .target-cell { background: var(--target) !important; color: #000; font-weight: 900; font-size: 14px; }
+        .path-cell { background: var(--path-bg) !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.4); z-index: 5; }
         
-        #picker-man { width: 46px; height: 46px; font-size: 28px; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 50; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: none; }
+        #picker-man { 
+            width: 46px; height: 46px; font-size: 28px; 
+            display: flex; align-items: center; justify-content: center; 
+            position: absolute; z-index: 50; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            display: none; pointer-events: none;
+        }
 
-        .monitor-panel { width: 100%; max-width: 600px; background: #000; border-radius: 8px; padding: 12px; border: 2px solid var(--border-color); margin-top: auto; }
-        .monitor-header { color: #00ff41; font-family: monospace; font-size: 0.65rem; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 8px; padding-bottom: 4px; }
-        #jsonOutput { color: #00ff41; font-family: 'Consolas', monospace; font-size: 0.75rem; margin: 0; white-space: pre-wrap; height: 160px; overflow-y: auto; }
+        .monitor-panel { width: 100%; max-width: 620px; background: #000; border-radius: 8px; padding: 15px; border: 2px solid var(--border-color); margin-top: auto; }
+        .monitor-header { color: #00ff41; font-family: monospace; font-size: 0.7rem; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px; }
+        #jsonOutput { color: #00ff41; font-family: 'Consolas', monospace; font-size: 0.8rem; margin: 0; white-space: pre-wrap; height: 180px; overflow-y: auto; }
     </style>
 </head>
 <body>
     <div class="dashboard">
         <aside class="sidebar">
-            <div class="main-title" style="font-size: 1.2rem; margin: 0;">Input panel</div>
-            <label>Theme</label>
+            <div class="sidebar-header">Input Panel</div>
+            <label>Interface Theme</label>
             <select id="themeSelect">
-                <option value="default">Midnight</option>
-                <option value="light">Cloud</option>
-                <option value="cyber">Cyberpunk</option>
-                <option value="matrix">Matrix</option>
+                <option value="default">Midnight Blue</option>
+                <option value="light">Cloud Light</option>
+                <option value="cyber">Cyber Neon</option>
+                <option value="matrix">Digital Matrix</option>
             </select>
-            <label>Current Config</label>
-            <textarea id="jsonInput" readonly></textarea>
+            <label>JSON Configuration</label>
+            <textarea id="jsonInput" placeholder='Paste your JSON here...'></textarea>
             <div class="btn-group">
-                <button id="initBtn">Fetch & Load Config</button>
-                <button id="stepBtn" disabled>Step</button>
-                <button id="playBtn" disabled>Auto-Pilot</button>
+                <button id="initBtn">Load & Initialize</button>
+                <button id="stepBtn" disabled>Manual Step</button>
+                <button id="playBtn" disabled>Start Auto-Pilot</button>
             </div>
         </aside>
 
@@ -86,14 +95,20 @@
             <div class="main-title">RouteMaster Pro</div>
             <div id="warehouse-grid"><div id="picker-man">🚚</div></div>
             <div class="monitor-panel">
-                <div class="monitor-header">TELEMETRY_FEED</div>
-                <pre id="jsonOutput">// Awaiting config.json...</pre>
+                <div class="monitor-header">MANDATORY_JSON_OUTPUT_STREAM</div>
+                <pre id="jsonOutput">// Awaiting system initialization...</pre>
             </div>
         </main>
     </div>
 
     <script>
-        let fullPath = [], currentIdx = 0, isPlaying = false, playInterval = null, currentGrid = [];
+        /**
+         * ROUTEMASTER ENGINE
+         * Implements BFS Pathfinding to visit all target coordinates[cite: 11, 21].
+         * Complies with orthogonal movement rules (Up, Down, Left, Right)[cite: 19].
+         */
+        let fullPath = [], currentIdx = 0, isPlaying = false, playInterval = null;
+        let originalTargets = [];
         const synth = window.speechSynthesis;
 
         function speak(dir) {
@@ -101,35 +116,36 @@
             const u = new SpeechSynthesisUtterance(dir); u.rate = 1.8; synth.speak(u);
         }
 
-        async function fetchConfig() {
-            try {
-                const response = await fetch('config.json');
-                if (!response.ok) throw new Error("File not found");
-                const data = await response.json();
-                document.getElementById('jsonInput').value = JSON.stringify(data, null, 4);
-                initSystem(data);
-            } catch (e) {
-                alert("Error: config.json must be in the same folder and served via a web server.");
-            }
-        }
-
+        // SCHEMA COMPLIANCE: Matches exact requirements from Source [cite: 35]
         function updateMonitor() {
-            const data = {
-                current_cell: fullPath[currentIdx],
-                status: currentIdx === fullPath.length - 1 ? "DESTINATION_REACHED" : "EN_ROUTE",
-                cells_traversed: fullPath.slice(0, currentIdx + 1)
+            const visitedPath = fullPath.slice(0, currentIdx + 1);
+            
+            // Count unique targets collected [cite: 40]
+            const collectedCount = originalTargets.filter(t => 
+                visitedPath.some(p => p[0] === t[0] && p[1] === t[1])
+            ).length;
+
+            const outputSchema = {
+                "total_steps": currentIdx, // [cite: 38]
+                "path": visitedPath,       // [cite: 39]
+                "targets_collected": collectedCount // [cite: 40]
             };
-            document.getElementById('jsonOutput').innerText = JSON.stringify(data, null, 4);
+            
+            document.getElementById('jsonOutput').innerText = JSON.stringify(outputSchema, null, 4);
         }
 
+        // BFS ALGORITHM: Ensures shortest path and obstacle avoidance [cite: 11, 22]
         function findPath(grid, start, end) {
             const queue = [[start]], visited = new Set([start.toString()]);
             while (queue.length > 0) {
                 const path = queue.shift();
                 const [r, c] = path[path.length - 1];
                 if (r === end[0] && c === end[1]) return path;
+                
+                // Directions: Up, Down, Left, Right [cite: 19]
                 for (const [nr, nc] of [[r-1, c], [r+1, c], [r, c-1], [r, c+1]]) {
-                    if (nr >= 0 && nr < grid.length && nc >= 0 && nc < grid[0].length && grid[nr][nc] !== 1 && !visited.has([nr, nc].toString())) {
+                    if (nr >= 0 && nr < grid.length && nc >= 0 && nc < grid[0].length && 
+                        grid[nr][nc] !== 1 && !visited.has([nr, nc].toString())) {
                         visited.add([nr, nc].toString());
                         queue.push([...path, [nr, nc]]);
                     }
@@ -138,26 +154,54 @@
             return null;
         }
 
+        async function handleLoad() {
+            const textArea = document.getElementById('jsonInput');
+            try {
+                let data;
+                if (!textArea.value.trim()) {
+                    const response = await fetch('config.json');
+                    if (!response.ok) throw new Error();
+                    data = await response.json();
+                    textArea.value = JSON.stringify(data, null, 4);
+                } else {
+                    data = JSON.parse(textArea.value);
+                }
+                initSystem(data);
+            } catch (e) {
+                alert("Please provide valid JSON matching the required schema[cite: 26].");
+            }
+        }
+
         function initSystem(data) {
             stopAuto();
-            currentGrid = data.grid;
+            originalTargets = data.targets;
             const container = document.getElementById('warehouse-grid');
+            
+            // Reset UI
             Array.from(container.children).forEach(c => { if(c.id !== 'picker-man') container.removeChild(c); });
             container.style.gridTemplateColumns = `repeat(${data.grid[0].length}, 46px)`;
             
+            // Build Grid Visualization [cite: 12]
             data.grid.forEach((row, r) => row.forEach((val, c) => {
                 const cell = document.createElement('div');
                 cell.className = 'cell'; cell.id = `cell-${r}-${c}`;
                 if (val === 1) cell.classList.add('obstacle');
-                if (data.targets.some(t => t[0] === r && t[1] === c)) cell.classList.add('target-cell');
+                if (data.targets.some(t => t[0] === r && t[1] === c)) {
+                    cell.classList.add('target-cell');
+                    cell.innerText = "2";
+                }
                 container.appendChild(cell);
             }));
 
+            // Path Optimization: Visit all targets [cite: 21]
             fullPath = [data.start];
             let cur = data.start;
             data.targets.forEach(t => { 
                 const p = findPath(data.grid, cur, t); 
-                if(p) { fullPath = fullPath.concat(p.slice(1)); cur = t; }
+                if(p) { 
+                    fullPath = fullPath.concat(p.slice(1)); 
+                    cur = t; 
+                }
             });
 
             currentIdx = 0;
@@ -165,7 +209,9 @@
             const pkr = document.getElementById('picker-man');
             pkr.style.top = `${sCell.offsetTop}px`; pkr.style.left = `${sCell.offsetLeft}px`;
             pkr.style.display = 'flex';
-            document.getElementById('stepBtn').disabled = document.getElementById('playBtn').disabled = false;
+            
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('playBtn').disabled = false;
             updateMonitor();
         }
 
@@ -175,22 +221,32 @@
                 const [nr, nc] = fullPath[currentIdx + 1];
                 let dir = (nr < r) ? "Up" : (nr > r) ? "Down" : (nc < c) ? "Left" : "Right";
                 speak(dir);
+                
                 currentIdx++;
                 const cell = document.getElementById(`cell-${nr}-${nc}`);
                 const pkr = document.getElementById('picker-man');
-                pkr.style.top = `${cell.offsetTop}px`; pkr.style.left = `${cell.offsetLeft}px`;
+                
+                pkr.style.top = `${cell.offsetTop}px`; 
+                pkr.style.left = `${cell.offsetLeft}px`;
                 cell.classList.add('path-cell');
                 updateMonitor();
-            } else { stopAuto(); speak("Arrived"); }
+            } else { 
+                stopAuto(); 
+                speak("Order collection complete."); 
+            }
         }
 
-        function stopAuto() { isPlaying = false; clearInterval(playInterval); document.getElementById('playBtn').innerText = "Auto-Pilot"; }
+        function stopAuto() { isPlaying = false; clearInterval(playInterval); document.getElementById('playBtn').innerText = "Start Auto-Pilot"; }
 
-        document.getElementById('initBtn').addEventListener('click', fetchConfig);
+        document.getElementById('initBtn').addEventListener('click', handleLoad);
         document.getElementById('stepBtn').addEventListener('click', move);
         document.getElementById('playBtn').addEventListener('click', () => {
             if (isPlaying) stopAuto();
-            else { isPlaying = true; document.getElementById('playBtn').innerText = "Stop"; playInterval = setInterval(move, 700); }
+            else { 
+                isPlaying = true; 
+                document.getElementById('playBtn').innerText = "Emergency Stop"; 
+                playInterval = setInterval(move, 500); 
+            }
         });
         document.getElementById('themeSelect').addEventListener('change', (e) => document.documentElement.setAttribute('data-theme', e.target.value));
     </script>
