@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteMaster Pro | Integrated System</title>
+    <style>
+        :root { 
+            --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; 
+            --target: #fbbf24; --path-bg: #22c55e; 
+            --shelf: #475569; --text: #f1f5f9;
+            --border-color: #000000;
+        }
+        /* THEMES */
+        [data-theme="light"] { --bg: #f8fafc; --card: #ffffff; --accent: #2563eb; --target: #f59e0b; --path-bg: #10b981; --shelf: #cbd5e1; --text: #1e293b; --border-color: #94a3b8; }
+        [data-theme="cyber"] { --bg: #03001c; --card: #1b002c; --accent: #00f7ff; --target: #ff00ff; --path-bg: #00ff41; --shelf: #301e67; --text: #fff; --border-color: #000; }
+        [data-theme="matrix"] { --bg: #000; --card: #000; --accent: #00ff41; --target: #fff; --path-bg: #00ff41; --shelf: #003b00; --text: #00ff41; --border-color: #00ff41; }
+
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; transition: 0.3s; }
+        .dashboard { display: flex; width: 100%; height: 100vh; }
+        
+        .sidebar { width: 300px; background: var(--card); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border-right: 1px solid var(--shelf); box-sizing: border-box; }
+        label { font-size: 0.6rem; color: #888; font-weight: bold; text-transform: uppercase; }
+        select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--shelf); color: var(--text); border-radius: 6px; padding: 10px; box-sizing: border-box; font-size: 0.8rem; }
+        textarea { height: 120px; font-family: 'Consolas', monospace; resize: none; }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        button { border: none; padding: 0.8rem; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; transition: 0.2s; }
+        #initBtn { background: var(--accent); color: var(--bg); }
+        #stepBtn { background: var(--shelf); color: var(--text); }
+        #playBtn { background: #22c55e; color: #000; }
+        button:disabled { opacity: 0.2; }
+
+        .viewport { flex: 1; padding: 2rem; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 20px; }
+        
+        .main-title { 
+            font-size: 3rem; font-weight: 900; color: var(--accent); 
+            text-transform: uppercase; letter-spacing: -2px; margin: 10px 0;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.4));
+        }
+
+        #warehouse-grid { 
+            background: var(--card); padding: 10px; border-radius: 8px; 
+            display: grid; gap: 2px; position: relative; 
+            border: 4px solid var(--border-color); 
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        .cell { 
+            width: 46px; height: 46px; border: 2.5px solid var(--border-color); 
+            display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+        }
+
+        .obstacle { background: var(--shelf) !important; }
+        .target-cell { background: var(--target) !important; color: #000; font-weight: 900; }
+        .path-cell { background: var(--path-bg) !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); z-index: 5; }
+        
+        #picker-man { width: 46px; height: 46px; font-size: 28px; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 50; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: none; }
+
+        .monitor-panel { width: 100%; max-width: 600px; background: #000; border-radius: 8px; padding: 12px; border: 2px solid var(--border-color); margin-top: auto; }
+        .monitor-header { color: #00ff41; font-family: monospace; font-size: 0.65rem; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 8px; padding-bottom: 4px; }
+        #jsonOutput { color: #00ff41; font-family: 'Consolas', monospace; font-size: 0.75rem; margin: 0; white-space: pre-wrap; height: 160px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="main-title" style="font-size: 1.2rem; margin: 0;">Input panel</div>
+            <label>Theme</label>
+            <select id="themeSelect">
+                <option value="default">Midnight</option>
+                <option value="light">Cloud</option>
+                <option value="cyber">Cyberpunk</option>
+                <option value="matrix">Matrix</option>
+            </select>
+            <label>Current Config</label>
+            <textarea id="jsonInput" readonly></textarea>
+            <div class="btn-group">
+                <button id="initBtn">Fetch & Load Config</button>
+                <button id="stepBtn" disabled>Step</button>
+                <button id="playBtn" disabled>Auto-Pilot</button>
+            </div>
+        </aside>
+
+        <main class="viewport">
+            <div class="main-title">RouteMaster Pro</div>
+            <div id="warehouse-grid"><div id="picker-man">🚚</div></div>
+            <div class="monitor-panel">
+                <div class="monitor-header">TELEMETRY_FEED</div>
+                <pre id="jsonOutput">// Awaiting config.json...</pre>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let fullPath = [], currentIdx = 0, isPlaying = false, playInterval = null, currentGrid = [];
+        const synth = window.speechSynthesis;
+
+        function speak(dir) {
+            synth.cancel();
+            const u = new SpeechSynthesisUtterance(dir); u.rate = 1.8; synth.speak(u);
+        }
+
+        async function fetchConfig() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) throw new Error("File not found");
+                const data = await response.json();
+                document.getElementById('jsonInput').value = JSON.stringify(data, null, 4);
+                initSystem(data);
+            } catch (e) {
+                alert("Error: config.json must be in the same folder and served via a web server.");
+            }
+        }
+
+        function updateMonitor() {
+            const data = {
+                current_cell: fullPath[currentIdx],
+                status: currentIdx === fullPath.length - 1 ? "DESTINATION_REACHED" : "EN_ROUTE",
+                cells_traversed: fullPath.slice(0, currentIdx + 1)
+            };
+            document.getElementById('jsonOutput').innerText = JSON.stringify(data, null, 4);
+        }
+
+        function findPath(grid, start, end) {
+            const queue = [[start]], visited = new Set([start.toString()]);
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const [r, c] = path[path.length - 1];
+                if (r === end[0] && c === end[1]) return path;
+                for (const [nr, nc] of [[r-1, c], [r+1, c], [r, c-1], [r, c+1]]) {
+                    if (nr >= 0 && nr < grid.length && nc >= 0 && nc < grid[0].length && grid[nr][nc] !== 1 && !visited.has([nr, nc].toString())) {
+                        visited.add([nr, nc].toString());
+                        queue.push([...path, [nr, nc]]);
+                    }
+                }
+            }
+            return null;
+        }
+
+        function initSystem(data) {
+            stopAuto();
+            currentGrid = data.grid;
+            const container = document.getElementById('warehouse-grid');
+            Array.from(container.children).forEach(c => { if(c.id !== 'picker-man') container.removeChild(c); });
+            container.style.gridTemplateColumns = `repeat(${data.grid[0].length}, 46px)`;
+            
+            data.grid.forEach((row, r) => row.forEach((val, c) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell'; cell.id = `cell-${r}-${c}`;
+                if (val === 1) cell.classList.add('obstacle');
+                if (data.targets.some(t => t[0] === r && t[1] === c)) cell.classList.add('target-cell');
+                container.appendChild(cell);
+            }));
+
+            fullPath = [data.start];
+            let cur = data.start;
+            data.targets.forEach(t => { 
+                const p = findPath(data.grid, cur, t); 
+                if(p) { fullPath = fullPath.concat(p.slice(1)); cur = t; }
+            });
+
+            currentIdx = 0;
+            const sCell = document.getElementById(`cell-${data.start[0]}-${data.start[1]}`);
+            const pkr = document.getElementById('picker-man');
+            pkr.style.top = `${sCell.offsetTop}px`; pkr.style.left = `${sCell.offsetLeft}px`;
+            pkr.style.display = 'flex';
+            document.getElementById('stepBtn').disabled = document.getElementById('playBtn').disabled = false;
+            updateMonitor();
+        }
+
+        function move() {
+            if (currentIdx < fullPath.length - 1) {
+                const [r, c] = fullPath[currentIdx];
+                const [nr, nc] = fullPath[currentIdx + 1];
+                let dir = (nr < r) ? "Up" : (nr > r) ? "Down" : (nc < c) ? "Left" : "Right";
+                speak(dir);
+                currentIdx++;
+                const cell = document.getElementById(`cell-${nr}-${nc}`);
+                const pkr = document.getElementById('picker-man');
+                pkr.style.top = `${cell.offsetTop}px`; pkr.style.left = `${cell.offsetLeft}px`;
+                cell.classList.add('path-cell');
+                updateMonitor();
+            } else { stopAuto(); speak("Arrived"); }
+        }
+
+        function stopAuto() { isPlaying = false; clearInterval(playInterval); document.getElementById('playBtn').innerText = "Auto-Pilot"; }
+
+        document.getElementById('initBtn').addEventListener('click', fetchConfig);
+        document.getElementById('stepBtn').addEventListener('click', move);
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (isPlaying) stopAuto();
+            else { isPlaying = true; document.getElementById('playBtn').innerText = "Stop"; playInterval = setInterval(move, 700); }
+        });
+        document.getElementById('themeSelect').addEventListener('change', (e) => document.documentElement.setAttribute('data-theme', e.target.value));
+    </script>
+</body>
+</html>
